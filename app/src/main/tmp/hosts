@@ -1,0 +1,5 @@
+# /etc/hosts
+192.168.99.254 swarm-manager
+192.168.99.253 swarm-worker-01
+192.168.99.252 swarm-worker-02
+192.168.99.251 swarm-worker-03

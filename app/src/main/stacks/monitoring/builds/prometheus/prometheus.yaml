@@ -1,0 +1,79 @@
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+      monitor: 'devops-monitor'
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+  # - "first.rules"
+  # - "second.rules"
+  - alerts.yml
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+    static_configs:
+      - targets: ['localhost:9090'] # Linux
+      # - targets: ['host.docker.internal:9090'] # Only works on Docker Desktop for Windows or Mac
+
+  # Create a job for Docker daemons.
+  - job_name: 'docker'
+    dockerswarm_sd_configs:
+      - host: unix:///var/run/docker.sock
+        role: nodes
+    relabel_configs:
+      # Fetch metrics on port 9323.
+      - source_labels: [__meta_dockerswarm_node_address]
+        target_label: __address__
+        replacement: $1:4999
+      # Set hostname as instance label
+      - source_labels: [__meta_dockerswarm_node_hostname]
+        target_label: instance
+
+  # Create a job for Docker Swarm containers.
+  - job_name: 'swarm'
+    dockerswarm_sd_configs:
+      - host: unix:///var/run/docker.sock
+        role: tasks
+    relabel_configs:
+      # Only keep containers that should be running.
+      - source_labels: [__meta_dockerswarm_task_desired_state]
+        regex: running
+        action: keep
+      # Only keep containers that have a `prometheus-job` label.
+      - source_labels: [__meta_dockerswarm_service_label_prometheus_job]
+        regex: .+
+        action: keep
+      # Use the prometheus-job Swarm label as Prometheus job label.
+      - source_labels: [__meta_dockerswarm_service_label_prometheus_job]
+        target_label: job
+
+
+# - job_name: 'docker'
+#   # metrics_path defaults to '/metrics'
+#   # scheme defaults to 'http'.
+#   static_configs:
+#     # - targets: ['docker.for.mac.host.internal:9323'] # Only works on Docker Desktop for Mac
+#     - targets: ['host.docker.internal:9323']
+# 
+# - job_name: 'stack'
+#   static_configs:
+#     - targets: ['192.168.1.201:9417']
+#       
+
+#   - job_name: services
+#     metrics_path: /metrics
+#     static_configs:
+#       - targets:
+#           - 'prometheus:9090'
+#           - 'idonotexists:564'
+

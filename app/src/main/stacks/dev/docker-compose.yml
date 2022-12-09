@@ -1,0 +1,75 @@
+version: '3.6'
+# -------------------------------------------------------------------- networks
+networks:
+  dev-front:
+    name: 'dev-front'
+  dev-back:
+    name: 'dev-back'
+# --------------------------------------------------------------------- volumes
+# volumes:
+#   mariadb:
+#     driver: local
+#     driver_opts:
+#       type: "nfs"
+#       o: "addr=${MANAGER},nolock,soft,rw" # nolock and soft ensure docker doesn't freeze if the nfs connection is lost.
+#       device: ":/data/env/${STACK}/mariadb"
+# -------------------------------------------------------------------- services
+services:
+  nginx:
+    image: 127.0.0.1:5000/${STACK}-nginx
+    labels: [prometheus-job=nginx]
+    build: ./builds/nginx/
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == worker]
+    networks:
+      - dev-front
+      - dev-back
+    ports:
+      - 80:80
+      - 443:443
+  tomcat:
+    image: 127.0.0.1:5000/${STACK}-tomcat
+    labels: [prometheus-job=tomcat]
+    build: ./builds/tomcat/
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == worker]
+    networks:
+      - dev-back
+    ports:
+      - 8080:8080
+      - 55022:55022 # ssh port
+    environment:
+      # Starts tomcat with jaas config file
+      JAVA_OPTS: $JAVA_OPTS "-Djava.security.auth.login.config=$CATALINA_HOME/conf/jaas.config"
+      # Database
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+  mariadb:
+    image: 127.0.0.1:5000/${STACK}-mariadb
+    labels: [prometheus-job=mariadb]
+    build: ./builds/mariadb/
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == worker]
+    networks:
+      - dev-back
+    ports:
+      - 3306:3306
+    # volumes:
+    #   - type: volume
+    #     source: mariadb
+    #     target: /var/lib/mysql
+    #     volume:
+    #       nocopy: true
+    environment:
+      # Database
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}

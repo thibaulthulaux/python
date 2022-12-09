@@ -1,0 +1,41 @@
+version: '3.6'
+# -------------------------------------------------------------------- networks
+networks:
+  swarm:
+    name: 'swarm'
+    external: true
+# --------------------------------------------------------------------- volumes
+# volumes:
+#   gitlab-runner:
+#     driver: local
+#     driver_opts:
+#       type: "nfs"
+#       o: "addr=${MANAGER},nolock,soft,rw" # nolock and soft ensure docker doesn't freeze if the nfs connection is lost.
+#       device: ":/data/${STACK}/gitlab-runner"
+# -------------------------------------------------------------------- services
+services:
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    labels: [prometheus-job=gitlab-runner]
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - swarm
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # - type: volume
+      #   source: gitlab-runner
+      #   target: /etc/gitlab-runner
+      #   volume:
+      #     nocopy: true
+    # environment:
+    # - GITLAB_RUNNER_DEFAULT_IMAGE=${GITLAB_RUNNER_DEFAULT_IMAGE}
+    # - GITLAB_RUNNER_DESCRIPTION=${GITLAB_RUNNER_DESCRIPTION}
+    # - GITLAB_RUNNER_EXECUTOR=${GITLAB_RUNNER_EXECUTOR}
+    # - GITLAB_RUNNER_INSTANCE_URL=${GITLAB_RUNNER_INSTANCE_URL}
+    # - GITLAB_RUNNER_MAINTENANCE_NOTE=${GITLAB_RUNNER_MAINTENANCE_NOTE}
+    # - GITLAB_RUNNER_REGISTRATION_TOKEN=${GITLAB_RUNNER_REGISTRATION_TOKEN}
+    # - GITLAB_RUNNER_TAGS=${GITLAB_RUNNER_TAGS}
+    # - TZ=${GITLAB_RUNNER_TIMEZONE}

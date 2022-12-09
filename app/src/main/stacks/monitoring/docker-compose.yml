@@ -1,0 +1,73 @@
+version: '3.6'
+# -------------------------------------------------------------------- networks
+networks:
+  swarm:
+    name: 'swarm'
+    external: true
+# --------------------------------------------------------------------- volumes
+# volumes:
+#   prometheus:
+#     driver: local
+#     driver_opts:
+#       type: "nfs"
+#       o: "addr=${MANAGER},nolock,soft,rw" # nolock and soft ensure docker doesn't freeze if the nfs connection is lost.
+#       device: ":/data/${STACK}/prometheus"
+#   grafana:
+#     driver: local
+#     driver_opts:
+#       type: "nfs"
+#       o: "addr=${MANAGER},nolock,soft,rw" # nolock and soft ensure docker doesn't freeze if the nfs connection is lost.
+#       device: ":/data/${STACK}/grafana"
+# -------------------------------------------------------------------- services
+services:
+  visualizer:
+    image: dockersamples/visualizer
+    labels: [prometheus-job=visualizer]
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - swarm
+    ports:
+      - 5050:8080
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  prometheus:
+    image: 127.0.0.1:5000/${STACK}-prometheus
+    labels: [prometheus-job=prometheus]
+    build: ./builds/prometheus/
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - swarm
+    ports:
+      - 9090:9090
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # - type: volume
+      #   source: prometheus
+      #   target: /prometheus
+      #   volume:
+      #     nocopy: true
+    command: --web.enable-lifecycle --config.file=/etc/prometheus/prometheus.yml 
+  grafana:
+    image: 127.0.0.1:5000/${STACK}-grafana
+    labels: [prometheus-job=grafana]
+    build: ./builds/grafana/
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - swarm
+    ports:
+      - 3000:3000
+    # volumes:
+    #   - type: volume
+    #     source: grafana
+    #     target: /var/lib/grafana
+    #     volume:
+    #       nocopy: true
