@@ -1,5 +1,5 @@
 # -------------------------------------------------------------- Line Endings -
-# All files arechecked into the repo with LF
+# All files are checked into the repo with LF
 * text=auto
 
 # These files are checked out using CRLF locally
@@ -10,6 +10,8 @@
 *.sh eol=LF
 
 # --------------------------------------------------- LFS (Large File System) -
+# These files are checked in using LFS
+
 # Archives
 *.7z filter=lfs diff=lfs merge=lfs -text
 *.br filter=lfs diff=lfs merge=lfs -text
